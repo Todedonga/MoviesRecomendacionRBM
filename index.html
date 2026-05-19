@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MovieFlow · Recomendador RBM</title>
+    <base href="./">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-start: #0f172a;
+            --bg-end: #1e293b;
+            --card: rgba(255,255,255,0.95);
+            --primary: #6d28d9;
+            --secondary: #818cf8;
+            --surface: #111827;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            background: radial-gradient(circle at top left, rgba(99,102,241,0.18), transparent 28%),
+                        linear-gradient(180deg, var(--bg-start) 0%, var(--bg-end) 100%);
+            color: var(--text);
+        }
+
+        .navbar {
+            padding: 0.95rem 1.2rem;
+            background: rgba(15, 23, 42, 0.95);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+        }
+        .navbar-brand {
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: white !important;
+        }
+        .navbar-nav {
+            align-items: center;
+        }
+        .nav-link {
+            color: #cbd5e1 !important;
+            transition: color 0.2s ease;
+        }
+        .nav-link:hover {
+            color: white !important;
+        }
+        .hero {
+            min-height: 78vh;
+            display: grid;
+            place-items: center;
+            padding: 3rem 1rem 1rem;
+        }
+        .hero-card {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            backdrop-filter: blur(20px);
+            border-radius: 32px;
+            padding: 2.6rem;
+            box-shadow: 0 32px 90px rgba(15, 23, 42, 0.45);
+            max-width: 1120px;
+            margin: 0 auto;
+        }
+        .hero h1 {
+            font-size: clamp(2.5rem, 4vw, 3.8rem);
+            line-height: 1.02;
+            color: #f8fafc;
+        }
+        .hero p {
+            font-size: 1.05rem;
+            color: #cbd5e1;
+            max-width: 52rem;
+        }
+        .badge-glow {
+            background: rgba(99, 102, 241, 0.18);
+            color: #e0e7ff;
+            border-radius: 999px;
+            padding: 0.55rem 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 700;
+            margin-bottom: 1.4rem;
+        }
+        .cta-btn {
+            min-width: 180px;
+        }
+        .feature-card {
+            background: rgba(15, 23, 42, 0.96);
+            border: 1px solid rgba(148, 163, 184, 0.12);
+            border-radius: 24px;
+            padding: 1.7rem;
+            transition: transform .25s ease, box-shadow .25s ease;
+        }
+        .feature-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+        }
+        .movie-card {
+            background: var(--card);
+            border-radius: 22px;
+            padding: 1.5rem;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .movie-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+        }
+        .movie-card h5 {
+            margin-bottom: 0.65rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+        #movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.2rem;
+            align-items: stretch;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding-top: 1rem;
+        }
+        .section-panel {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 32px;
+            padding: 2rem;
+            margin: 0 auto 3rem;
+            max-width: 1200px;
+        }
+        .section-panel h2 {
+            color: #f8fafc;
+        }
+        .section-panel p {
+            color: #cbd5e1;
+        }
+        .section-panel .text-center {
+            margin-top: 1.6rem;
+        }
+        #submit-btn {
+            min-width: 240px;
+            padding: 1rem 2rem;
+            font-weight: 700;
+            box-shadow: 0 14px 30px rgba(99, 102, 241, 0.22);
+        }
+        .submit-wrapper {
+            display: flex;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+        .loading-card {
+            background: rgba(255,255,255,0.08);
+            border: 1px dashed rgba(148,163,184,0.4);
+            border-radius: 24px;
+            padding: 1.8rem;
+            text-align: center;
+            color: #cbd5e1;
+            margin-bottom: 1.5rem;
+        }
+        .loading-card strong {
+            color: #f8fafc;
+        }
+        .feature-card {
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 24px;
+            padding: 2rem 1.7rem;
+            transition: transform .25s ease, box-shadow .25s ease;
+            min-height: 260px;
+            color: #e2e8f0;
+        }
+        .feature-card h3 {
+            margin-bottom: 1rem;
+            color: #f8fafc;
+        }
+        .feature-card p {
+            margin-bottom: 0;
+            color: #cbd5e1;
+        }
+        .feature-card .text-muted {
+            color: #cbd5e1 !important;
+        }
+        .feature-list {
+            max-width: 1080px;
+            margin: 0 auto;
+        }
+        .rating-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        .rating-star {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            transition: transform .2s ease, background .2s ease;
+            color: #94a3b8;
+            background: #f8fafc;
+            font-size: 1.15rem;
+            border: 1px solid rgba(15, 23, 42, 0.08);
+        }
+        .rating-star.active, .rating-star:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+        }
+        .rating-help {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid rgba(148, 163, 184, 0.08);
+            border-radius: 28px;
+            padding: 1.8rem;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, var(--secondary) 100%);
+        }
+        .alert-box {
+            border-radius: 18px;
+            padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        #resultados {
+            display: none;
+        }
+        .result-card {
+            background: white;
+            color: #0f172a;
+            border-radius: 24px;
+            padding: 1.7rem;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.12);
+            margin-bottom: 1.3rem;
+        }
+        .genres-badge {
+            display: inline-flex;
+            gap: .4rem;
+            flex-wrap: wrap;
+            margin-top: 0.85rem;
+        }
+        .genres-badge span {
+            background: #e2e8f0;
+            color: #334155;
+            border-radius: 999px;
+            padding: 0.45rem 0.85rem;
+            font-size: 0.82rem;
+        }
+        footer {
+            padding: 2rem 1rem;
+            color: #94a3b8;
+            text-align: center;
+        }
+        .hero-card ul {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .hero-card li {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 0.85rem;
+            color: #cbd5e1;
+        }
+        .hero-card li::before {
+            content: "•";
+            color: var(--primary);
+            font-weight: 700;
+            margin-top: 0.15rem;
+        }
+        @media (max-width: 992px) {
+            .hero { padding: 2rem 1rem; }
+            .hero-card { padding: 2rem; }
+        }
+        @media (max-width: 768px) {
+            .feature-card { padding: 1.4rem; }
+            .rating-row { gap: 0.4rem; }
+            .navbar { padding: 0.8rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="#">MovieFlow</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu" aria-controls="navMenu" aria-expanded="false" aria-label="Abrir menú">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto gap-2">
+                <li class="nav-item"><a class="nav-link" href="#rating-section">Califica</a></li>
+                <li class="nav-item"><a class="nav-link" href="#features">Ventajas</a></li>
+                <li class="nav-item"><a class="nav-link" href="#resultados">Resultados</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="container">
+        <div class="hero-card row align-items-center g-4">
+            <div class="col-lg-6">
+                <span class="badge-glow">Proyecto de portafolio</span>
+                <h1>Recomendaciones de películas con RBM</h1>
+                <p>Una landing moderna y responsive que convierte un modelo RBM entrenado en una experiencia interactiva. Califica 5 o más películas y recibe sugerencias personalizadas con explicaciones claras.</p>
+                <div class="d-flex flex-wrap gap-3 mt-4">
+                    <button class="btn btn-primary btn-lg cta-btn" onclick="scrollToSection()">Comenzar ahora</button>
+                    <a class="btn btn-outline-light btn-lg cta-btn" href="#features">Ver beneficios</a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="glass-panel">
+                    <h2>¿Qué ofrece esta demo?</h2>
+                    <ul class="list-unstyled mt-3" style="color:#cbd5e1; gap:0.75rem; display:grid;">
+                        <li>• Frontend responsivo con diseño profesional.</li>
+                        <li>• API Flask segura y validada.</li>
+                        <li>• Recomendaciones personalizadas con explicación.</li>
+                        <li>• Funciona en plataformas gratuitas como Replit o PythonAnywhere.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<main>
+    <section id="rating-section" class="py-5">
+        <div class="container section-panel">
+            <div class="row align-items-center mb-4">
+                <div class="col-md-7">
+                    <h2>Selecciona tus calificaciones</h2>
+                    <p class="mb-0">Elige al menos 5 películas del conjunto de datos para obtener recomendaciones confiables. Puedes calificar más títulos si deseas resultados más precisos.</p>
+                </div>
+                <div class="col-md-5 text-md-end pt-3 pt-md-0">
+                    <span class="fw-semibold">Calificaciones actuales:</span>
+                    <span id="rating-count">0</span> / 5
+                </div>
+            </div>
+
+            <div id="message-box" class="alert alert-info alert-box d-none" role="alert"></div>
+
+            <div id="movies-grid"></div>
+
+            <div class="submit-wrapper">
+                <button id="submit-btn" type="button" class="btn btn-primary btn-lg" onclick="enviarCalificaciones()">Obtener recomendaciones</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="resultados" class="py-5">
+        <div class="container section-panel">
+            <div class="row mb-4">
+                <div class="col-lg-8">
+                    <h2>Resultado</h2>
+                    <p class="mb-0">Estas películas fueron seleccionadas según tus calificaciones y el modelo RBM.</p>
+                </div>
+            </div>
+            <div id="lista-recomendaciones"></div>
+            <div class="text-center mt-4">
+                <button class="btn btn-outline-light btn-lg" type="button" onclick="volver()">Volver a calificar</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="py-5">
+        <div class="container feature-list">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="feature-card p-4">
+                        <h3>UX responsive</h3>
+                        <p class="text-muted">La interfaz escala bien en móvil, tablet y desktop para que tu proyecto se vea profesional desde cualquier pantalla.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="feature-card p-4">
+                        <h3>Validación robusta</h3>
+                        <p class="text-muted">El backend revisa entradas inválidas, respuestas incompletas y evita recomendaciones con datos insuficientes.</p>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="feature-card p-4">
+                        <h3>Despliegue fácil</h3>
+                        <p class="text-muted">Listo para plataformas gratuitas como Replit y PythonAnywhere. Incluye pasos claros para producción.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<footer>
+    <div class="container">
+        <p>Proyecto de recomendador RBM creado para portafolio. Incluye front-end, API Flask y modelo entrenado.</p>
+    </div>
+</footer>
+
+<script>
+const FLASK_BASE_URL = "http://127.0.0.1:5000";
+const API_URL = `${FLASK_BASE_URL}/recomendar`;
+const MOVIES_JSON_URL = `${FLASK_BASE_URL}/peliculas.json`;
+const MIN_RATINGS = 5;
+let peliculas = [];
+let selectedRatings = {};
+const ratingCount = document.getElementById("rating-count");
+const messageBox = document.getElementById("message-box");
+const submitBtn = document.getElementById("submit-btn");
+
+async function loadMovies() {
+    if (window.location.protocol === 'file:') {
+        showMessage("No se puede cargar esta aplicación desde file://. Ejecuta el servidor Flask con python app.py y abre http://127.0.0.1:5000.", "danger");
+        return;
+    }
+
+    const endpoints = [MOVIES_JSON_URL, "peliculas.json", "/peliculas.json"];
+    let data = null;
+    let lastError = null;
+
+    for (const endpoint of endpoints) {
+        try {
+            const response = await fetch(endpoint);
+            if (!response.ok) throw new Error(`Error al cargar ${endpoint}`);
+            data = await response.json();
+            break;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (!data) {
+        const isFileProtocol = window.location.protocol === 'file:';
+        const message = isFileProtocol
+            ? "No se pudo cargar la lista de películas desde file://. Ejecuta el servidor Flask con python app.py y abre http://127.0.0.1:5000."
+            : "No se pudo cargar la lista de películas. Revisa que el servidor Flask esté activo y que exista peliculas.json en la raíz. " + (lastError ? lastError.message : "");
+        showMessage(message, "danger");
+        return;
+    }
+
+    peliculas = data.sort(() => Math.random() - 0.5).slice(0, 12);
+    renderPeliculas();
+    showMessage("Selecciona al menos 5 películas para recibir recomendaciones.", "info");
+}
+
+function renderPeliculas() {
+    const grid = document.getElementById("movies-grid");
+    grid.innerHTML = peliculas.map(movie => {
+        const movieId = String(movie.MovieID);
+        const score = selectedRatings[movieId] || 0;
+        return `
+            <article class="movie-card">
+                <div>
+                    <h5>${movie.Title}</h5>
+                    <div class="movie-tags">${String(movie.Genres).replace(/\|/g, ' · ')}</div>
+                </div>
+                <div>
+                    <div class="rating-row">
+                        ${[1,2,3,4,5].map(value => `
+                            <button type="button" class="rating-star ${score >= value ? 'active' : ''}" onclick="setRating('${movieId}', ${value})" aria-label="Calificar ${value} estrellas">★</button>
+                        `).join('')}
+                    </div>
+                    <p class="rating-help mt-3 mb-0">Valoración: ${score > 0 ? score + "/5" : "sin calificar"}</p>
+                </div>
+            </article>
+        `;
+    }).join("");
+    updateRatingCount();
+}
+
+function setRating(movieID, rating) {
+    selectedRatings[movieID] = rating;
+    renderPeliculas();
+    if (Object.keys(selectedRatings).length >= MIN_RATINGS) {
+        showMessage("Listo para generar recomendaciones.", "success");
+    }
+}
+
+function updateRatingCount() {
+    ratingCount.textContent = Object.keys(selectedRatings).length;
+}
+
+function showMessage(message, type = "info") {
+    messageBox.textContent = message;
+    messageBox.className = `alert alert-${type} alert-box`;
+    messageBox.classList.remove("d-none");
+}
+
+function hideMessage() {
+    messageBox.classList.add("d-none");
+}
+
+function showResultsSection() {
+    const resultadosSection = document.getElementById("resultados");
+    resultadosSection.style.display = "block";
+    resultadosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function mostrarLoadingResultados() {
+    showResultsSection();
+    document.getElementById("lista-recomendaciones").innerHTML = `
+        <div class="loading-card">
+            <strong>Generando recomendaciones...</strong>
+            <p>Espera un momento mientras analizamos tus calificaciones.</p>
+        </div>
+    `;
+}
+
+function mostrarErrorResultados(message) {
+    showResultsSection();
+    document.getElementById("lista-recomendaciones").innerHTML = `
+        <div class="result-card">
+            <h3>Error al generar recomendaciones</h3>
+            <p class="text-muted">${message}</p>
+        </div>
+    `;
+}
+
+async function enviarCalificaciones() {
+    const count = Object.keys(selectedRatings).length;
+    if (count < MIN_RATINGS) {
+        showMessage(`Por favor califica al menos ${MIN_RATINGS} películas.`, "warning");
+        return;
+    }
+
+    if (window.location.protocol === 'file:') {
+        showMessage("No puedes enviar calificaciones desde file://. Abre la app desde el servidor Flask ejecutando python app.py.", "danger");
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Procesando...";
+    hideMessage();
+
+    try {
+        mostrarLoadingResultados();
+        const response = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(selectedRatings)
+        });
+
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (parseError) {
+            throw new Error(`La API devolvió un HTML o un error inesperado. Asegúrate de ejecutar el servidor Flask en http://127.0.0.1:5000 y de que la ruta /recomendar exista. Respuesta:
+${text.slice(0, 280)}`);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.error || "Error al obtener recomendaciones.");
+        }
+
+        mostrarResultados(data);
+    } catch (error) {
+        showMessage(error.message, "danger");
+        mostrarErrorResultados(error.message);
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Obtener recomendaciones";
+    }
+}
+
+function mostrarResultados(recs) {
+    document.getElementById("rating-section").style.display = "none";
+    const resultadosSection = document.getElementById("resultados");
+    resultadosSection.style.display = "block";
+    resultadosSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const lista = document.getElementById("lista-recomendaciones");
+    if (!recs || recs.length === 0) {
+        lista.innerHTML = `<div class="result-card"><p class="mb-0">No se generaron recomendaciones. Intenta con otras calificaciones.</p></div>`;
+        return;
+    }
+
+    lista.innerHTML = recs.map((movie, index) => `
+        <article class="result-card">
+            <div class="d-flex justify-content-between align-items-start gap-3 flex-column flex-md-row">
+                <div>
+                    <h3 class="h5">#${index + 1} ${movie.title}</h3>
+                    <div class="genres-badge">${movie.genres.split("|").map(g => `<span>${g}</span>`).join("")}</div>
+                </div>
+                <span class="badge bg-primary text-white">Recomendado</span>
+            </div>
+            <p class="mt-3 mb-0 text-muted">${movie.explanation}</p>
+        </article>
+    `).join("");
+}
+
+function volver() {
+    document.getElementById("resultados").style.display = "none";
+    document.getElementById("rating-section").style.display = "block";
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToSection() {
+    document.getElementById("rating-section").scrollIntoView({ behavior: 'smooth' });
+}
+
+window.addEventListener('load', loadMovies);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

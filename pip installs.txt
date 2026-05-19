@@ -1,0 +1,9 @@
+pip install numpy
+pip install pandas
+pip install scikit-learn
+pip install scipy
+pip install ujson
+pip install chardet
+pip install utf8fix
+pip install torch
+pip install tensorflow
